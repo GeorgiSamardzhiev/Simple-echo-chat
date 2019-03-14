@@ -8,15 +8,14 @@
 #include <iostream>
 
 #define PORT 4444
-#define MAX 255
+#define MAX 128
 
 int main(int argc, char *argv[]) {
-	int fd, numbytes;
+	int fd, r;
 	char buff[MAX] = { 0 };
 	struct sockaddr_in sock;
 
-
-	fd = socket(PF_INET, SOCK_STREAM, 0);
+	fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (fd==-1) {
 		perror("socket init");
 		return 1;
@@ -24,8 +23,9 @@ int main(int argc, char *argv[]) {
 
 	char ip[MAX] = { 0 };
 	std::cin>>ip;
+	std::cin.ignore();
 
-	sock.sin_family = PF_INET;
+	sock.sin_family = AF_INET;
 	sock.sin_addr.s_addr = inet_addr(ip);
 	sock.sin_port = htons(PORT);
 
@@ -35,21 +35,22 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	std::cin>>buff;
+	while (strcmp(buff, "exit") != 0) {
+		std::cin.getline(buff, MAX-1);
 
-	if (send(fd, buff, strlen(buff), 0) == -1) {
-		perror("send");
+		if (send(fd, buff, strlen(buff), 0) == -1) {
+			perror("send");
+			return 1;
+		}
+
+		if ((r = recv(fd, buff, MAX-1, 0)) == -1) {
+			perror("recv");
+			return 1;
+		}
+
+		buff[r] = 0;
+		printf("client: received '%s'\n", buff);
 	}
-
-	if ((numbytes = recv(fd, buff, MAX-1, 0)) == -1) {
-		perror("recv");
-		exit(1);
-	}
-
-	buff[numbytes] = 0;
-
-	printf("client: received '%s'\n", buff);
-
 	close(fd);
 
 	return 0;
